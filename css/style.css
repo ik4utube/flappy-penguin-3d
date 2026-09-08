@@ -1,0 +1,162 @@
+/* ============ FLAPPY PENGUIN 3D — retro HUD ============ */
+:root{
+  --ink:#0b1026;
+  --snow:#eaf6ff;
+  --ice:#7fd4ff;
+  --gold:#ffd15c;
+  --hot:#ff6b5e;
+  --panel:rgba(10,16,38,.82);
+  --edge:#7fd4ff;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:#05070f;overflow:hidden}
+body{
+  font-family:"DungGeunMo","Galmuri11",ui-monospace,"Courier New",monospace;
+  color:var(--snow);
+  -webkit-font-smoothing:none;
+  user-select:none;
+}
+.hidden{display:none !important}
+
+#stage{position:fixed;inset:0}
+
+/* ---- 3D canvas : 저해상도 렌더를 픽셀 그대로 확대 ---- */
+#game{
+  position:absolute;inset:0;
+  width:100%;height:100%;
+  display:block;
+  image-rendering:pixelated;
+  image-rendering:crisp-edges;
+}
+
+/* ---- CRT 스캔라인 ---- */
+#scanlines{
+  position:absolute;inset:0;pointer-events:none;z-index:5;
+  background:repeating-linear-gradient(to bottom,
+    rgba(0,0,0,.22) 0px, rgba(0,0,0,.22) 1px,
+    rgba(0,0,0,0)   1px, rgba(0,0,0,0)   3px);
+  mix-blend-mode:multiply;
+  opacity:.55;
+}
+#stage::after{ /* 비네트 */
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:6;
+  background:radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,.55) 100%);
+}
+
+/* ---- 충돌 플래시 ---- */
+#flash{
+  position:absolute;inset:0;pointer-events:none;z-index:7;
+  background:#ff5252;opacity:0;transition:opacity .1s linear;
+}
+#flash.on{opacity:.45;transition:none}
+
+/* ================= HUD ================= */
+#hud{position:absolute;inset:0;z-index:8;pointer-events:none}
+.hud-row{display:flex;gap:18px;padding:14px 18px;flex-wrap:wrap}
+.stat{
+  background:var(--panel);
+  border:2px solid rgba(127,212,255,.5);
+  box-shadow:0 0 0 2px #05070f, 0 3px 0 rgba(0,0,0,.5);
+  padding:5px 10px;display:flex;gap:8px;align-items:baseline;
+}
+.stat .k{font-size:11px;letter-spacing:2px;color:var(--ice);opacity:.9}
+.stat .v{font-size:19px;color:var(--snow);text-shadow:0 2px 0 #123}
+#s-fish{color:var(--gold)}
+
+#state-msg{
+  position:absolute;left:50%;top:22%;transform:translateX(-50%);
+  font-size:28px;letter-spacing:3px;text-align:center;
+  text-shadow:0 3px 0 #000,0 0 18px rgba(255,107,94,.8);
+  opacity:0;transition:opacity .25s;
+}
+#state-msg.show{opacity:1}
+
+/* ================= 웹캠 패널 ================= */
+#cam-panel{
+  position:absolute;left:16px;bottom:16px;z-index:9;
+  width:240px;
+  background:var(--panel);
+  border:2px solid rgba(127,212,255,.5);
+  box-shadow:0 0 0 2px #05070f,0 4px 0 rgba(0,0,0,.5);
+  padding:6px;
+}
+#cam{display:none}
+#cam-overlay{
+  display:block;width:100%;height:auto;background:#040914;
+  image-rendering:pixelated;
+}
+#cam-status{
+  font-size:10px;letter-spacing:2px;color:var(--ice);
+  padding:4px 2px 0;display:flex;justify-content:space-between;
+}
+#cam-status.lost{color:var(--hot)}
+#cam-bars{padding:6px 2px 0;display:flex;flex-direction:column;gap:5px}
+.bar{display:flex;align-items:center;gap:6px}
+.bar i{font-style:normal;font-size:10px;width:26px;color:var(--ice);letter-spacing:1px}
+.track{flex:1;height:9px;background:#0d1730;border:1px solid rgba(127,212,255,.35);position:relative;overflow:hidden}
+.fill{position:absolute;top:0;bottom:0;left:0;width:0;background:var(--gold)}
+.fill.center{left:50%;width:0;background:var(--ice)}
+
+/* ================= 메뉴 / 로딩 ================= */
+#menu,#loading{
+  position:absolute;inset:0;z-index:20;
+  display:flex;align-items:center;justify-content:center;
+  /* 뒤에서 돌아가는 3D 프리뷰가 비쳐 보이도록 반투명 */
+  background:radial-gradient(ellipse at 50% 40%, rgba(9,16,38,.45) 0%, rgba(5,9,22,.88) 75%);
+  backdrop-filter:blur(1px);
+}
+#loading{background:radial-gradient(ellipse at 50% 40%, rgba(9,16,38,.75) 0%, rgba(5,9,22,.95) 75%)}
+#menu .panel,#loading .panel{
+  width:min(560px,90vw);
+  background:var(--panel);
+  border:3px solid var(--edge);
+  box-shadow:0 0 0 3px #05070f, 0 0 40px rgba(127,212,255,.25), 0 10px 0 rgba(0,0,0,.5);
+  padding:26px 30px 22px;
+  text-align:center;
+}
+#menu h1{
+  margin:0 0 6px;font-size:40px;line-height:1.05;letter-spacing:4px;
+  text-shadow:0 4px 0 #14315f, 0 0 24px rgba(127,212,255,.5);
+}
+#menu h1 em{font-style:normal;color:var(--ice)}
+#menu h1 .tag{
+  display:inline-block;margin-left:10px;font-size:14px;color:var(--gold);
+  border:2px solid var(--gold);padding:2px 6px;vertical-align:middle;letter-spacing:2px;
+}
+#menu .sub{margin:0 0 18px;color:#9fc4e8;font-size:13px;letter-spacing:2px}
+
+.howto{list-style:none;margin:0 0 20px;padding:0;text-align:left;
+  display:grid;grid-template-columns:1fr;gap:6px}
+.howto li{
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+  background:#0d1730;border-left:4px solid var(--ice);
+  padding:7px 10px;font-size:13px;
+}
+.howto li b{font-weight:normal;color:var(--snow)}
+.howto li i{font-style:normal;color:var(--gold);font-size:12px}
+
+.btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+button{
+  font-family:inherit;font-size:15px;letter-spacing:1px;
+  padding:11px 20px;cursor:pointer;color:var(--snow);
+  background:#1b2c55;border:2px solid var(--edge);
+  box-shadow:0 4px 0 #0a1533;
+  transition:transform .06s,box-shadow .06s;
+}
+button:hover{background:#24407a}
+button:active{transform:translateY(4px);box-shadow:0 0 0 #0a1533}
+button.primary{background:#1f6fb0;border-color:var(--snow)}
+button.primary:hover{background:#2b8ad6}
+
+.hint{margin:16px 0 0;font-size:11px;color:#7f9dc4;line-height:1.6}
+.hint.err{color:var(--hot)}
+
+.spin{font-size:44px;animation:bob 1s infinite steps(4)}
+@keyframes bob{0%{transform:translateY(0)}50%{transform:translateY(-10px)}100%{transform:translateY(0)}}
+#loading p{font-size:13px;color:#9fc4e8;letter-spacing:2px}
+
+@media (max-width:640px){
+  #cam-panel{width:150px;left:10px;bottom:10px}
+  #menu h1{font-size:28px}
+  .stat .v{font-size:15px}
+}

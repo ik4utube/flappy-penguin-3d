@@ -1,0 +1,14 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "penguin",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "serve.py",
+        "8321"
+      ],
+      "port": 8321
+    }
+  ]
+}
