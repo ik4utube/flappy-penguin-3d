@@ -287,7 +287,7 @@ export class World {
     });
     this.clouds = new Pool(scene, makeCloud, {
       count: 26, near: 60, far: 320, cull: 360,
-      scaleMin: 0.9, scaleMax: 2.4, air: true, minY: 75, maxY: 155,
+      scaleMin: 0.9, scaleMax: 2.4, air: true, minY: 100, maxY: 165,
       spread: 2.6, driftX: 1.5,
     });
     this.fish = new Pool(scene, makeFish, {

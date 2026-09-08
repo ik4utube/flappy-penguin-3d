@@ -5,7 +5,9 @@ import * as THREE from 'three';
 import { PoseController, KeyController } from './pose.js';
 import { World, terrainHeight } from './world.js';
 import { createPenguin } from './penguin.js';
+import { CHARACTERS, statMul } from './characters.js';
 import { Hud } from './hud.js';
+import { Ui } from './ui.js';
 
 // ---------- 튜닝 상수 ----------
 const PIXEL_DIV   = 3.2;    // 렌더 해상도 축소 배율 (레트로 픽셀감)
@@ -31,11 +33,18 @@ const state = {
   crash: 0,
   invuln: 0,
   running: false,
+  character: null,
 };
 
-let renderer, scene, camera, world, penguin, hud, ctrl, shadow;
+// 선택한 캐릭터에서 나오는 성능 배율
+const perf = { speed: 1, turn: 1, lift: 1 };
+
+let renderer, scene, camera, world, penguin, hud, ui, ctrl, shadow, portraitLight;
 let useCam = false;
 let last = performance.now();
+let previewMode = 'cinematic';
+let previewT = 0;
+
 const camTarget = new THREE.Vector3();
 const camLook = new THREE.Vector3();
 const camLookSmooth = new THREE.Vector3();
@@ -53,8 +62,7 @@ function initThree() {
   camera = new THREE.PerspectiveCamera(65, 1, 0.5, 1000);
 
   world = new World(scene);
-  penguin = createPenguin();
-  scene.add(penguin.root);
+  setCharacter(CHARACTERS[0]);
 
   // 지면 그림자 — 고도를 눈으로 가늠하게 해준다
   shadow = new THREE.Mesh(
@@ -64,9 +72,33 @@ function initThree() {
   shadow.rotation.x = -Math.PI / 2;
   scene.add(shadow);
 
+  // 캐릭터 선택 화면 전용 조명. 태양이 뒤쪽에 있어서 정면이 그늘지는데,
+  // 캐릭터를 고르는 화면에서는 색과 생김새가 보여야 한다.
+  // PointLight 는 r155 이후 물리 단위(칸델라)라 이 거리에서는 사실상 보이지 않는다.
+  // 방향광으로 카메라 쪽에서 캐릭터를 비춘다.
+  portraitLight = new THREE.DirectionalLight(0xfff2e0, 1.6);
+  portraitLight.visible = false;
+  scene.add(portraitLight);
+  scene.add(portraitLight.target);
+
   hud = new Hud();
   resize();
   addEventListener('resize', resize);
+}
+
+/** 캐릭터 교체: 3D 모델을 새로 만들고 성능 배율을 갱신 */
+function setCharacter(c) {
+  if (penguin) {
+    scene.remove(penguin.root);
+    penguin.dispose();
+  }
+  penguin = createPenguin(c.shape);
+  scene.add(penguin.root);
+
+  perf.speed = statMul(c.stats.speed);
+  perf.turn  = statMul(c.stats.turn);
+  perf.lift  = statMul(c.stats.lift);
+  state.character = c;
 }
 
 function resize() {
@@ -86,16 +118,17 @@ function step(dt) {
   const flap = THREE.MathUtils.clamp(ctrl.flap, 0, 1);
 
   // ---- 선회 : roll > 0 이면 오른쪽 ----
-  state.yaw -= roll * TURN_RATE * dt;
+  state.yaw -= roll * TURN_RATE * perf.turn * dt;
 
   // ---- 수직 : 날갯짓 양력 vs 중력 ----
-  state.vy += (flap * LIFT - GRAVITY) * dt;
+  state.vy += (flap * LIFT * perf.lift - GRAVITY) * dt;
   state.vy *= Math.exp(-VY_DAMP * dt);
   state.vy = THREE.MathUtils.clamp(state.vy, -MAX_VY, MAX_VY);
 
   // ---- 전진 속도 : 하강하면 가속, 상승하면 감속 ----
+  const base = BASE_SPEED * perf.speed;
   const targetSpeed = THREE.MathUtils.clamp(
-    BASE_SPEED - state.vy * DIVE_GAIN, BASE_SPEED * 0.62, MAX_SPEED);
+    base - state.vy * DIVE_GAIN, base * 0.62, MAX_SPEED);
   state.speed += (targetSpeed - state.speed) * Math.min(1, dt * 2);
 
   // ---- 위치 적분 ----
@@ -209,6 +242,58 @@ function updateCamera(dt, roll, pitch) {
   camera.rotateZ(tilt);
 }
 
+/* ================= 메뉴 배경 연출 =================
+ * 게임 시작 전에도 같은 월드에서 펭귄이 실제로 날고 있다.
+ *   cinematic : 지형과 함께 넓게 잡아 활공을 보여준다 (타이틀/프롤로그)
+ *   portrait  : 캐릭터를 가까이서 천천히 돌며 보여준다 (캐릭터 선택)
+ */
+function updatePreview(dt) {
+  previewT += dt;
+  const t = previewT;
+
+  // 완만한 원호를 그리며 계속 전진한다
+  const yaw = t * 0.16;
+  const r = 150;
+  state.yaw = yaw;
+  state.pos.set(Math.sin(yaw) * r, 0, Math.cos(yaw) * r);
+  state.pos.y = terrainHeight(state.pos.x, state.pos.z) + 52 + Math.sin(t * 0.5) * 6;
+
+  world.update(state.pos.x, state.pos.y, state.pos.z, state.yaw, dt);
+
+  penguin.root.position.copy(state.pos);
+  penguin.root.rotation.y = state.yaw;
+  penguin.anim.update(dt, 0.35 + Math.sin(t * 0.9) * 0.25, Math.sin(t * 0.5) * 0.35, 0, 0);
+  updateShadow(terrainHeight(state.pos.x, state.pos.z));
+
+  // 메뉴 배경은 구도가 중요하다. lerp 로 따라가면 펭귄이 계속 이동하는 탓에
+  // 지연이 쌓여 프레임 밖으로 밀려난다. 여기서는 펭귄 기준 고정 오프셋으로 놓는다.
+  const portrait = previewMode === 'portrait';
+  // portrait 는 정면 3/4 각도에서 좌우로 천천히 흔들린다 (얼굴이 보여야 한다).
+  // cinematic 은 옆뒤에서 지형과 함께 잡는다.
+  const angle  = portrait
+    ? state.yaw + Math.PI + Math.sin(t * 0.4) * 0.75
+    : state.yaw + 1.15 + t * 0.06;
+  const dist   = portrait ? 16 : 19;
+  const height = portrait ? 2.2 : 4.5;
+  const lookUp = portrait ? 0.4 : 3.2;   // 시선을 위로 올리면 펭귄이 화면 아래쪽에 앉는다
+
+  camera.position.set(
+    state.pos.x + Math.sin(angle) * dist,
+    state.pos.y + height,
+    state.pos.z + Math.cos(angle) * dist
+  );
+  portraitLight.visible = portrait;
+  if (portrait) {
+    portraitLight.position.set(camera.position.x, camera.position.y + 8, camera.position.z);
+    portraitLight.target.position.copy(state.pos);
+    portraitLight.target.updateMatrixWorld();
+  }
+
+  camLookSmooth.set(state.pos.x, state.pos.y + lookUp, state.pos.z);
+  camera.lookAt(camLookSmooth);
+  camera.rotateZ(Math.sin(t * 0.23) * (portrait ? 0.02 : 0.05));   // 아주 미세한 흔들림
+}
+
 /* ================= 루프 ================= */
 function loop() {
   requestAnimationFrame(loop);
@@ -216,51 +301,41 @@ function loop() {
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
   if (state.running) step(dt);
+  else updatePreview(dt);
   renderer.render(scene, camera);
 }
 
 /* ================= 시작 ================= */
 async function startCam() {
-  const menu = document.getElementById('menu');
-  const loading = document.getElementById('loading');
-  const loadMsg = document.getElementById('load-msg');
-  const hint = document.getElementById('menu-hint');
-
-  menu.classList.add('hidden');
-  loading.classList.remove('hidden');
-
+  ui.loading('카메라 권한 요청중...');
   const pose = new PoseController(document.getElementById('cam'));
   try {
-    await pose.start(m => { loadMsg.textContent = m; });
+    await pose.start(m => ui.loading(m));
   } catch (err) {
     console.error(err);
-    loading.classList.add('hidden');
-    menu.classList.remove('hidden');
-    hint.classList.add('err');
-    hint.textContent = '웹캠/모델 로드 실패: ' + (err && err.message ? err.message : err) +
-      ' — 키보드 모드로 플레이하거나, 카메라 권한과 인터넷 연결을 확인하세요.';
+    ui.error('웹캠/모델 로드 실패: ' + (err && err.message ? err.message : err) +
+      ' — 키보드 모드로 플레이하거나, 카메라 권한과 인터넷 연결을 확인하세요.');
     return;
   }
-
   ctrl = pose;
   useCam = true;
-  loading.classList.add('hidden');
   begin();
 }
 
 function startKeys() {
-  document.getElementById('menu').classList.add('hidden');
   ctrl = new KeyController();
   useCam = false;
   begin();
 }
 
 function begin() {
+  ui.hideAll();
+
   // 프리뷰 카메라가 옮겨놓은 상태를 초기화
   state.pos.set(0, 60, 0);
   state.yaw = 0;
   state.vy = 0;
-  state.speed = BASE_SPEED;
+  state.speed = BASE_SPEED * perf.speed;
   state.dist = 0;
   state.fish = 0;
   state.crash = 0;
@@ -277,33 +352,27 @@ function begin() {
 /* ================= 부트 ================= */
 initThree();
 
+ui = new Ui({
+  onPreview: mode => { previewMode = mode; },
+  onCharacter: c => setCharacter(c),
+  onStart: cam => (cam ? startCam() : startKeys()),
+});
+
 // 디버그 핸들: 콘솔에서 PENGUIN.state 확인 / PENGUIN.step(dt) 수동 진행
 window.PENGUIN = {
   state,
   step,
+  perf,
   get ctrl() { return ctrl; },
   set ctrl(c) { ctrl = c; },
   get world() { return world; },
   get penguin() { return penguin; },
   get camera() { return camera; },
+  get ui() { return ui; },
+  /** 테스트용 빠른 시작 (화면 전환을 건너뛴다) */
+  quickStart(mode = 'key') { return mode === 'cam' ? startCam() : startKeys(); },
+  /** 테스트용: 메뉴 배경 연출을 수동으로 진행 */
+  preview(dt) { updatePreview(dt); },
 };
-loop();   // 메뉴 뒤에서도 씬을 렌더링
 
-document.getElementById('btn-cam').addEventListener('click', startCam);
-document.getElementById('btn-key').addEventListener('click', startKeys);
-
-// 메뉴 화면에서는 카메라가 월드를 천천히 둘러본다
-(function preview() {
-  const t = performance.now() * 0.00012;
-  if (!state.running) {
-    state.pos.set(Math.sin(t) * 60, 55, Math.cos(t) * 60);
-    state.yaw = -t + Math.PI;
-    world.update(state.pos.x, state.pos.y, state.pos.z, state.yaw, 1 / 60);
-    penguin.root.position.copy(state.pos);
-    penguin.root.rotation.y = state.yaw;
-    penguin.anim.update(1 / 60, 0.25, 0, 0, 0);
-    updateShadow(terrainHeight(state.pos.x, state.pos.z));
-    updateCamera(1 / 60, 0, 0);
-  }
-  requestAnimationFrame(preview);
-})();
+loop();

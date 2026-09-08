@@ -166,12 +166,58 @@ page.on('console', m => {
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 try {
-  /* ===== 1. 로드 ===== */
-  section('1. 페이지 로드');
+  /* ===== 1. 로드 + 화면 흐름 ===== */
+  section('1. 타이틀 → 프롤로그 → 캐릭터 선택');
   await page.goto(`http://localhost:${PORT}/`, { waitUntil: 'networkidle2', timeout: 30000 });
   await page.evaluate(INJECT);
-  check('메뉴가 표시된다', await page.$eval('#menu', el => !el.classList.contains('hidden')));
+  const vis = id => page.evaluate(i => !document.getElementById(i).classList.contains('hidden'), id);
+
+  check('타이틀 화면이 표시된다', await vis('scr-title'));
   check('Three.js 씬이 생성됐다', await page.evaluate(() => !!window.PENGUIN && !!window.PENGUIN.world));
+  check('픽셀 폰트가 적용됐다', await page.evaluate(async () => {
+    await document.fonts.ready;
+    return document.fonts.check('12px Galmuri11') || document.fonts.check('12px "Press Start 2P"');
+  }));
+
+  await page.click('#btn-start');
+  check('PRESS START → 프롤로그로 넘어간다', await vis('scr-story'));
+  await sleep(700);
+  check('프롤로그가 한 글자씩 찍힌다',
+        (await page.$eval('#story-text', el => el.textContent)).length > 3);
+
+  await page.click('#btn-story-skip');
+  check('캐릭터 선택 화면이 열린다', await vis('scr-select'));
+
+  const roster = await page.$$eval('#roster .slot', els => els.length);
+  check('캐릭터 명단이 채워진다', roster === 6, `${roster}명`);
+
+  // 캐릭터를 바꾸면 이름·스토리·스탯·3D 모델·성능 배율이 모두 따라온다
+  const charA = await page.evaluate(() => ({
+    name: document.getElementById('ch-name').textContent,
+    perf: { ...window.PENGUIN.perf },
+    uuid: window.PENGUIN.penguin.root.uuid,
+  }));
+  await page.evaluate(() => window.PENGUIN.ui.select(2));   // 검은바위 (속도 5 / 선회 2 / 양력 2)
+  const charB = await page.evaluate(() => ({
+    name: document.getElementById('ch-name').textContent,
+    title: document.getElementById('ch-title').textContent,
+    story: document.getElementById('ch-story').textContent,
+    pips: document.querySelectorAll('#pip-speed b.on').length,
+    perf: { ...window.PENGUIN.perf },
+    uuid: window.PENGUIN.penguin.root.uuid,
+  }));
+  check('캐릭터를 바꾸면 이름과 스토리가 바뀐다',
+        charB.name !== charA.name && charB.title.length > 0 && charB.story.length > 20,
+        `${charA.name} → ${charB.name}`);
+  check('스탯 표시가 캐릭터를 따라간다', charB.pips === 5, `속도 ${charB.pips}/5`);
+  check('성능 배율이 실제로 바뀐다', charB.perf.speed > charA.perf.speed,
+        `speed ${charA.perf.speed.toFixed(2)} → ${charB.perf.speed.toFixed(2)}`);
+  check('3D 모델이 교체된다', charB.uuid !== charA.uuid);
+
+  await page.click('#btn-sel-ok');
+  check('조작 안내 화면으로 넘어간다', await vis('scr-mode'));
+  check('선택한 캐릭터 이름이 안내에 나온다',
+        (await page.$eval('#mode-name', el => el.textContent)) === charB.name);
 
   /* ===== 2. 실제 웹캠 경로 기동 ===== */
   section('2. 웹캠 모드 기동 (getUserMedia + MediaPipe 실제 로딩)');
@@ -193,6 +239,11 @@ try {
   check('HUD와 웹캠 패널이 표시된다',
         await page.evaluate(() => !document.getElementById('hud').classList.contains('hidden') &&
                                   !document.getElementById('cam-panel').classList.contains('hidden')));
+  check('게임 중에는 메뉴 오버레이가 사라진다',
+        await page.evaluate(() => document.getElementById('ui').classList.contains('hidden')));
+  check('선택한 캐릭터가 게임에 반영된다',
+        await page.evaluate(() => window.PENGUIN.state.character && window.PENGUIN.state.character.id === 'geomeun'),
+        await page.evaluate(() => window.PENGUIN.state.character.name));
 
   /* ===== 3. 실제 추론 루프 ===== */
   section('3. 실제 추론 루프 (합성 카메라 = 사람 없음)');
