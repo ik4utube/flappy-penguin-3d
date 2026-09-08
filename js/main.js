@@ -19,6 +19,7 @@ const VY_DAMP     = 1.3;    // 공기저항 (1/s). 종단속도 = GRAVITY / VY_D
 const MAX_VY      = 26;
 const CEILING     = 165;
 const GROUND_CLR  = 3.2;    // 지면 위 최소 여유
+const MAX_CAM_TILT = 0.20;  // 카메라 수평선 기울기 상한 (rad, 약 11도)
 
 const state = {
   pos: new THREE.Vector3(0, 45, 0),
@@ -200,10 +201,12 @@ function updateCamera(dt, roll, pitch) {
   camLookSmooth.lerp(camLook, Math.min(1, dt * 6));
   camera.lookAt(camLookSmooth);
 
-  // lookAt() 이 매 프레임 카메라 회전을 통째로 덮어쓴다.
-  // 따라서 여기서 += 로 누적하면 프레임레이트에 따라 값이 달라지고 실제로는 거의 적용되지 않는다.
-  // 이미 완만하게 필터링된 camRoll 을 그대로 대입한다.
-  camera.rotation.z = -camRoll * 0.12;
+  // 주의: lookAt() 은 쿼터니언을 새로 쓴다.
+  // 그 뒤에 camera.rotation.z(오일러 각)를 직접 대입하면, 분해 결과에 따라
+  // X 가 ±180도 근처로 나오는 표현이 섞여 화면이 통째로 뒤집힌다.
+  // 카메라 자신의 로컬 Z 축을 기준으로 돌려야 안전하다.
+  const tilt = THREE.MathUtils.clamp(-camRoll * 0.12, -MAX_CAM_TILT, MAX_CAM_TILT);
+  camera.rotateZ(tilt);
 }
 
 /* ================= 루프 ================= */
@@ -281,6 +284,8 @@ window.PENGUIN = {
   get ctrl() { return ctrl; },
   set ctrl(c) { ctrl = c; },
   get world() { return world; },
+  get penguin() { return penguin; },
+  get camera() { return camera; },
 };
 loop();   // 메뉴 뒤에서도 씬을 렌더링
 

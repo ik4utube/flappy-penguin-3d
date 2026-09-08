@@ -279,6 +279,44 @@ try {
   check('사람을 놓치면 입력이 중립으로 감쇠', Math.abs(lost.b.roll) < 0.1 && lost.b.flap < 0.1,
         `roll=${lost.b.roll.toFixed(3)} flap=${lost.b.flap.toFixed(3)}`);
 
+  /* ===== 4-b. 회귀: 오래 선회해도 화면/펭귄이 뒤집히지 않는가 ===== */
+  section('4-b. 자세 안정성 (뒤집힘 회귀 방지)');
+  const att = await page.evaluate(() => {
+    const P = window.PENGUIN, s = P.state, B = P.penguin.body, C = P.camera;
+    const f = { roll: 0, flap: 0.5, tracked: true, landmarks: null, update() {} };
+    P.ctrl = f;
+    const run = rollFn => {
+      s.pos.set(0, 110, 0); s.yaw = 0; s.vy = 0; s.crash = 0; s.invuln = 99999;
+      for (let i = 0; i < 120; i++) { f.roll = rollFn(0); P.step(1 / 60); }  // 카메라 정착
+      let minUp = 1, maxBank = 0;
+      for (let i = 0; i < 1800; i++) {                                       // 30초
+        f.roll = rollFn(i / 60);
+        P.step(1 / 60);
+        C.updateMatrixWorld(true);
+        minUp = Math.min(minUp, C.matrixWorld.elements[5]);   // 카메라 up 의 월드 Y
+        maxBank = Math.max(maxBank, Math.abs(B.rotation.z));
+      }
+      return { tilt: Math.acos(Math.min(1, minUp)) * 180 / Math.PI, bank: maxBank * 180 / Math.PI };
+    };
+    const sweep = run(t => Math.sin(t * 0.7));
+    const hard  = run(t => Math.sign(Math.sin(t * Math.PI * 2)));
+    const hold  = run(() => -1);
+
+    // 충돌 텀블이 누적되지 않고 중립으로 복귀하는가
+    s.pos.set(0, 110, 0); s.invuln = 99999; f.roll = 0;
+    for (let i = 0; i < 120; i++) P.step(1 / 60);
+    for (let n = 0; n < 5; n++) { s.crash = 1; for (let i = 0; i < 90; i++) P.step(1 / 60); }
+    for (let i = 0; i < 180; i++) P.step(1 / 60);
+    const afterCrash = Math.abs(B.rotation.z) * 180 / Math.PI;
+
+    const worst = a => Math.max(sweep[a], hard[a], hold[a]);
+    return { tilt: +worst('tilt').toFixed(1), bank: +worst('bank').toFixed(1), afterCrash: +afterCrash.toFixed(1) };
+  });
+  check('30초 연속 선회에도 화면이 뒤집히지 않는다', att.tilt < 20,
+        `최대 화면 기울기 ${att.tilt}도`);
+  check('몸통 뱅킹이 상한에서 멈춘다', att.bank < 40, `최대 ${att.bank}도`);
+  check('충돌 텀블이 누적되지 않고 복귀한다', att.afterCrash < 2, `${att.afterCrash}도`);
+
   /* ===== 5. 실제 사진으로 모델 인식 확인 (선택) ===== */
   section('5. 실제 인물 사진에 대한 모델 인식 (네트워크 의존, 실패 시 skip)');
   const real = await page.evaluate(async () => {

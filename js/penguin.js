@@ -102,9 +102,12 @@ export function createPenguin() {
   root.traverse(o => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = false; } });
 
   // ---------- 애니메이션 상태 ----------
+  const MAX_BANK = 0.62;   // 몸통 뱅킹 상한 (rad, 약 35도)
+
   const anim = {
     t: 0,
     flapPhase: 0,
+    bankZ: 0,      // 뱅킹 각도를 따로 들고 있는다 (충돌 텀블과 섞이지 않게)
     /**
      * @param {number} dt      초
      * @param {number} flap    0~1 날갯짓 세기
@@ -131,9 +134,9 @@ export function createPenguin() {
       }
 
       // 몸통 뱅킹 / 피치 / 요잉
-      const targetRoll  = -roll * 0.62;
+      const targetRoll  = THREE.MathUtils.clamp(-roll * MAX_BANK, -MAX_BANK, MAX_BANK);
       const targetPitch = THREE.MathUtils.clamp(pitch, -0.7, 0.7);
-      body.rotation.z += (targetRoll - body.rotation.z) * Math.min(1, dt * 6);
+      this.bankZ += (targetRoll - this.bankZ) * Math.min(1, dt * 6);
       body.rotation.x += (targetPitch - body.rotation.x) * Math.min(1, dt * 5);
       body.rotation.y += (roll * 0.18 - body.rotation.y) * Math.min(1, dt * 5);
 
@@ -147,8 +150,11 @@ export function createPenguin() {
       // 발은 활공 중엔 뒤로 붙인다
       for (const f of feet) f.rotation.x = -0.6 + flap * 0.5;
 
-      // 충돌하면 빙글
-      if (crash > 0) body.rotation.z += Math.sin(this.t * 30) * crash * 0.5;
+      // 충돌 텀블은 뱅킹 위에 얹기만 한다.
+      // 예전처럼 body.rotation.z 에 += 로 누적하면 프레임마다 값이 쌓여
+      // 펭귄이 통째로 뒤집힌 채 돌아오지 않는다.
+      const tumble = crash > 0 ? Math.sin(this.t * 30) * crash * 0.5 : 0;
+      body.rotation.z = this.bankZ + tumble;
     },
   };
 
