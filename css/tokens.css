@@ -1,0 +1,31 @@
+/* ==========================================================
+ *  tokens.css — 게임과 랜딩 페이지가 공유하는 디자인 토큰
+ *
+ *  두 화면의 색·서체·테두리 느낌을 한 곳에서 관리한다.
+ *  (게임: css/style.css · 랜딩: css/landing.css)
+ * ========================================================== */
+:root{
+  /* 팔레트 — 남극의 밤 */
+  --ink:      #05070f;   /* 가장 어두운 바탕 */
+  --deep:     #0b1026;
+  --snow:     #eaf6ff;   /* 본문 글자 */
+  --ice:      #7fd4ff;   /* 강조 · 테두리 */
+  --gold:     #ffd15c;   /* 포인트 · 선택 */
+  --hot:      #ff6b5e;   /* 경고 · 충돌 */
+  --dim:      #8fb3d6;   /* 보조 글자 */
+  --dimmer:   #6d8db1;
+
+  --panel:      rgba(9,15,36,.86);
+  --panel-lite: rgba(13,23,48,.72);
+  --edge:       #7fd4ff;
+  --edge-soft:  rgba(127,212,255,.30);
+
+  /* 서체 — 영문/숫자는 픽셀 서체, 한글은 갈무리(픽셀 한글)로 폴백된다 */
+  --f-title:'Press Start 2P','Galmuri14',ui-monospace,monospace;
+  --f-body: 'Galmuri11','Press Start 2P',ui-monospace,monospace;
+  --f-mono: 'GalmuriMono9','Press Start 2P',ui-monospace,monospace;
+
+  /* 레트로 UI 공통 */
+  --hard-shadow: 0 4px 0 rgba(0,0,0,.5);
+  --plate: 0 0 0 2px var(--ink), 0 3px 0 rgba(0,0,0,.5);
+}

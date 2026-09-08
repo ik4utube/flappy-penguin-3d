@@ -1,0 +1,163 @@
+/* ==========================================================
+ *  landing.css — 게임 소개 페이지
+ *  색·서체는 css/tokens.css 를 그대로 쓴다 (게임과 동일한 룩)
+ * ========================================================== */
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--ink);color:var(--snow);
+  font-family:var(--f-body);line-height:1.85;letter-spacing:.02em;
+  -webkit-font-smoothing:none;
+  overflow-x:hidden;
+}
+img{max-width:100%;display:block;image-rendering:pixelated}
+a{color:var(--ice);text-decoration:none}
+a:hover{color:var(--gold)}
+
+/* 전역 스캔라인 — 게임 화면과 같은 CRT 느낌 */
+body::after{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:99;
+  background:repeating-linear-gradient(to bottom,
+    rgba(0,0,0,.20) 0px, rgba(0,0,0,.20) 1px,
+    rgba(0,0,0,0)   1px, rgba(0,0,0,0)   3px);
+  mix-blend-mode:multiply;opacity:.5;
+}
+
+.wrap{width:min(1080px,92vw);margin:0 auto}
+
+/* ================= 히어로 ================= */
+.hero{
+  position:relative;min-height:100svh;
+  display:flex;align-items:center;justify-content:center;text-align:center;
+  padding:60px 24px;overflow:hidden;
+}
+.hero-bg{
+  position:absolute;inset:0;
+  background:url('../shots/hero.png') center 42%/cover no-repeat;
+  filter:saturate(.9);
+}
+.hero-bg::after{
+  content:"";position:absolute;inset:0;
+  background:linear-gradient(180deg, rgba(5,7,15,.55) 0%, rgba(5,7,15,.35) 40%, var(--ink) 100%);
+}
+.hero-inner{position:relative;z-index:2}
+
+.logo{margin:0;display:flex;flex-direction:column;align-items:center;gap:8px;font-family:var(--f-title);line-height:1}
+.logo .l1{font-size:clamp(20px,5vw,44px);text-shadow:0 4px 0 #16345f,0 0 30px rgba(127,212,255,.35)}
+.logo .l2{font-size:clamp(26px,6.8vw,62px);color:var(--ice);text-shadow:0 5px 0 #123a63,0 0 34px rgba(127,212,255,.5)}
+.logo .l3{font-size:clamp(10px,1.8vw,15px);color:var(--ink);background:var(--gold);padding:5px 9px;box-shadow:0 3px 0 #a8802c}
+.hero .sub{font-size:clamp(14px,2.6vw,20px);color:var(--gold);letter-spacing:.35em;margin:22px 0 0;text-shadow:0 3px 0 #000}
+.hero .lede{max-width:620px;margin:26px auto 0;color:#cfe4f8;font-size:clamp(13px,1.6vw,15px);text-shadow:0 2px 0 #000}
+
+.cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:34px}
+.btn{
+  font-family:var(--f-title);font-size:clamp(10px,1.5vw,13px);
+  padding:16px 26px;border:3px solid var(--edge);background:#1b2c55;color:var(--snow);
+  box-shadow:0 5px 0 rgba(0,0,0,.55);cursor:pointer;display:inline-block;
+  transition:transform .07s, box-shadow .07s, background .12s;
+}
+.btn:hover{background:#24407a;color:var(--snow)}
+.btn:active{transform:translateY(5px);box-shadow:0 0 0 rgba(0,0,0,.55)}
+.btn.play{background:transparent;border-color:var(--gold);color:var(--gold)}
+.btn.play:hover{background:var(--gold);color:var(--ink)}
+.scroll-cue{margin-top:46px;font-size:11px;color:var(--dimmer);animation:bob 1.6s steps(3) infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(6px)}}
+
+/* ================= 섹션 공통 ================= */
+section.band{padding:86px 0;border-top:2px solid rgba(127,212,255,.14)}
+.eyebrow{
+  font-family:var(--f-title);font-size:10px;color:var(--gold);
+  letter-spacing:3px;margin:0 0 14px;
+}
+h2{
+  font-size:clamp(20px,3.2vw,30px);margin:0 0 10px;line-height:1.5;
+  text-shadow:0 3px 0 #000;
+}
+.lead{color:var(--dim);margin:0 0 38px;font-size:14px;max-width:62ch}
+
+/* ================= 프롤로그 ================= */
+.prologue{
+  background:linear-gradient(180deg, rgba(11,16,38,.6), rgba(5,7,15,.9));
+}
+.script{
+  border-left:4px solid var(--gold);padding:6px 0 6px 22px;
+  display:flex;flex-direction:column;gap:22px;max-width:640px;
+}
+.script p{margin:0;white-space:pre-line;font-size:clamp(14px,1.9vw,17px);color:var(--snow)}
+.script p:last-child{color:var(--gold)}
+
+/* ================= 조작 ================= */
+.controls{display:grid;grid-template-columns:1fr 1fr;gap:34px;align-items:center}
+.ctrl-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.ctrl-list li{
+  display:flex;justify-content:space-between;align-items:center;gap:14px;
+  background:var(--panel-lite);border-left:4px solid var(--ice);
+  padding:12px 14px;font-size:14px;
+}
+.ctrl-list li b{font-weight:normal}
+.ctrl-list li i{font-style:normal;color:var(--gold);font-size:13px;white-space:nowrap}
+.shot{border:2px solid var(--edge-soft);box-shadow:var(--plate)}
+figure{margin:0}
+figcaption{font-size:11px;color:var(--dimmer);margin-top:8px;text-align:center}
+
+/* ================= 캐릭터 ================= */
+.roster{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.card{
+  background:var(--panel);border:2px solid var(--edge-soft);
+  box-shadow:var(--plate);
+  display:flex;flex-direction:column;overflow:hidden;
+  transition:transform .1s, border-color .1s;
+}
+.card:hover{transform:translateY(-4px);border-color:var(--gold)}
+.card .portrait{background:linear-gradient(180deg,#16223f,#0b1026);border-bottom:2px solid var(--edge-soft)}
+.card .body{padding:16px 16px 18px;display:flex;flex-direction:column;gap:10px;flex:1}
+.card .roman{font-family:var(--f-title);font-size:9px;color:var(--ice);letter-spacing:2px}
+.card .nm{font-size:22px;margin:0;text-shadow:0 3px 0 #000}
+.card .ttl{font-size:12px;color:var(--gold);margin-top:-4px}
+.card .quote{
+  margin:0;padding-left:10px;border-left:3px solid var(--gold);
+  font-size:12.5px;color:#cfe4f8;
+}
+.card .desc{margin:0;font-size:12px;color:var(--dim);line-height:1.9}
+.card .stats{display:flex;flex-direction:column;gap:6px;margin-top:auto;padding-top:12px;border-top:1px solid rgba(127,212,255,.16)}
+.srow{display:flex;align-items:center;gap:10px}
+.srow i{font-style:normal;font-size:11px;color:var(--ice);width:30px}
+.pips{display:flex;gap:3px}
+.pips b{width:14px;height:9px;background:#22365c;display:block}
+.pips b.on{background:var(--gold)}
+
+/* ================= 갤러리 ================= */
+.gallery{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}
+
+/* ================= 만든 방법 ================= */
+.notes{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.note{background:var(--panel-lite);border:2px solid var(--edge-soft);padding:18px}
+.note h3{font-size:14px;margin:0 0 8px;color:var(--ice)}
+.note p{margin:0;font-size:12.5px;color:var(--dim);line-height:1.9}
+.note code{font-family:var(--f-mono);color:var(--gold);font-size:12px}
+
+.stack{display:flex;flex-wrap:wrap;gap:8px;margin-top:26px}
+.chip{
+  font-family:var(--f-mono);font-size:11px;color:var(--dim);
+  border:1px solid var(--edge-soft);padding:6px 10px;background:rgba(13,23,48,.6);
+}
+
+/* ================= 푸터 ================= */
+footer{
+  padding:52px 0 70px;border-top:2px solid rgba(127,212,255,.14);
+  color:var(--dimmer);font-size:12px;text-align:center;
+}
+footer .fc{color:var(--gold)}
+footer .links{display:flex;gap:16px;justify-content:center;margin:16px 0 22px;flex-wrap:wrap}
+
+/* ================= 반응형 ================= */
+@media (max-width:880px){
+  .roster{grid-template-columns:repeat(2,1fr)}
+  .controls{grid-template-columns:1fr}
+  .notes{grid-template-columns:1fr}
+  .gallery{grid-template-columns:1fr}
+}
+@media (max-width:560px){
+  .roster{grid-template-columns:1fr}
+  section.band{padding:62px 0}
+}

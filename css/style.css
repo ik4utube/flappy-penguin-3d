@@ -1,20 +1,5 @@
 /* ============ FLAPPY PENGUIN 3D — retro UI ============ */
-:root{
-  --ink:#0b1026;
-  --snow:#eaf6ff;
-  --ice:#7fd4ff;
-  --gold:#ffd15c;
-  --hot:#ff6b5e;
-  --dim:#8fb3d6;
-  --panel:rgba(9,15,36,.86);
-  --panel-lite:rgba(13,23,48,.72);
-  --edge:#7fd4ff;
-
-  /* 영문/숫자는 픽셀 서체, 한글은 갈무리(픽셀 한글)로 자연스럽게 넘어간다 */
-  --f-title:'Press Start 2P','Galmuri14',ui-monospace,monospace;
-  --f-body:'Galmuri11','Press Start 2P',ui-monospace,monospace;
-  --f-mono:'GalmuriMono9','Press Start 2P',ui-monospace,monospace;
-}
+/* 색·서체 토큰은 css/tokens.css 에 있다 (랜딩 페이지와 공유) */
 *{box-sizing:border-box}
 html,body{height:100%;margin:0;background:#05070f;overflow:hidden}
 body{

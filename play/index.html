@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>FLAPPY PENGUIN 3D — 잊혀진 날개</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%90%A7%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/galmuri/dist/galmuri.css">
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/style.css">
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+  }
+}
+</script>
+</head>
+<body>
+
+<div id="stage">
+  <canvas id="game"></canvas>
+  <div id="scanlines"></div>
+  <div id="flash"></div>
+
+  <!-- ===================== HUD ===================== -->
+  <div id="hud" class="hidden">
+    <div class="hud-row hud-top">
+      <div class="stat"><span class="k">SPEED</span><span class="v" id="s-speed">0</span></div>
+      <div class="stat"><span class="k">ALT</span><span class="v" id="s-alt">0</span></div>
+      <div class="stat"><span class="k">DIST</span><span class="v" id="s-dist">0</span></div>
+      <div class="stat"><span class="k">FISH</span><span class="v" id="s-fish">0</span></div>
+      <div class="stat"><span class="k">FPS</span><span class="v" id="s-fps">0</span></div>
+    </div>
+    <div id="state-msg"></div>
+  </div>
+
+  <!-- ===================== 웹캠 미리보기 ===================== -->
+  <div id="cam-panel" class="hidden">
+    <video id="cam" playsinline muted></video>
+    <canvas id="cam-overlay" width="240" height="180"></canvas>
+    <div id="cam-bars">
+      <div class="bar"><i>선회</i><div class="track"><div class="fill center" id="bar-roll"></div></div></div>
+      <div class="bar"><i>양력</i><div class="track"><div class="fill" id="bar-flap"></div></div></div>
+    </div>
+    <div id="cam-status">CAMERA</div>
+  </div>
+
+  <!-- ===================== 화면들 ===================== -->
+  <div id="ui">
+
+    <!-- ---------- 타이틀 ---------- -->
+    <section id="scr-title" class="screen">
+      <div class="vignette-top"></div>
+      <div class="title-wrap">
+        <p class="eyebrow">얼음이 갈라지고, 물고기가 사라졌다</p>
+        <h1 class="logo">
+          <span class="l1">FLAPPY</span>
+          <span class="l2">PENGUIN</span>
+          <span class="l3">3D</span>
+        </h1>
+        <p class="subtitle">잊혀진 날개</p>
+        <button id="btn-start" class="press-start">PRESS&nbsp;START</button>
+        <p class="foot"><a href="../">← 소개 페이지</a> · 패스트캠퍼스 실습 · MediaPipe Pose + Three.js</p>
+      </div>
+    </section>
+
+    <!-- ---------- 프롤로그 ---------- -->
+    <section id="scr-story" class="screen hidden">
+      <div class="story-box">
+        <div class="story-chapter">PROLOGUE</div>
+        <p id="story-text"></p>
+        <div class="story-nav">
+          <button id="btn-story-skip" class="ghost">건너뛰기</button>
+          <button id="btn-story-next" class="primary">다음 ▶</button>
+        </div>
+        <div id="story-dots" class="dots"></div>
+      </div>
+    </section>
+
+    <!-- ---------- 캐릭터 선택 ---------- -->
+    <section id="scr-select" class="screen hidden">
+      <header class="sel-head">
+        <span class="sel-label">SELECT YOUR PENGUIN</span>
+        <span class="sel-hint">◀ ▶ 이동 · ENTER 결정</span>
+      </header>
+
+      <div class="sel-body">
+        <div class="sel-left">
+          <div id="roster" class="roster"></div>
+          <div class="stats">
+            <div class="stat-row"><i>속도</i><span class="pips" id="pip-speed"></span></div>
+            <div class="stat-row"><i>선회</i><span class="pips" id="pip-turn"></span></div>
+            <div class="stat-row"><i>양력</i><span class="pips" id="pip-lift"></span></div>
+          </div>
+        </div>
+
+        <div class="portrait-stage">
+          <div class="stage-tag" id="stage-tag">PARANG</div>
+          <div class="stage-floor"></div>
+        </div>
+
+        <div class="sel-right">
+          <div class="name-plate">
+            <div class="ch-roman" id="ch-roman">PARANG</div>
+            <div class="ch-name" id="ch-name">파랑</div>
+            <div class="ch-title" id="ch-title">마지막 활공자</div>
+          </div>
+          <blockquote class="ch-quote" id="ch-quote"></blockquote>
+          <p class="ch-story" id="ch-story"></p>
+        </div>
+      </div>
+
+      <footer class="sel-foot">
+        <button id="btn-sel-back" class="ghost">◀ 뒤로</button>
+        <button id="btn-sel-ok" class="primary">이 펭귄으로 간다 ▶</button>
+      </footer>
+    </section>
+
+    <!-- ---------- 조작 / 모드 ---------- -->
+    <section id="scr-mode" class="screen hidden">
+      <div class="panel mode-panel">
+        <h2 class="panel-h">날갯짓을 기억하라</h2>
+        <p class="mode-lead"><b id="mode-name">파랑</b>이(가) 절벽 끝에 섰다.</p>
+
+        <ul class="howto">
+          <li><b>양팔 수평</b><i>직진</i></li>
+          <li><b>오른팔 내리기</b><i>오른쪽 선회</i></li>
+          <li><b>왼팔 내리기</b><i>왼쪽 선회</i></li>
+          <li><b>파닥파닥 날갯짓</b><i>상승</i></li>
+          <li><b>가만히</b><i>하강</i></li>
+        </ul>
+
+        <div class="btns">
+          <button id="btn-cam" class="primary">▶ 웹캠으로 시작</button>
+          <button id="btn-key">⌨ 키보드로 시작</button>
+        </div>
+        <p class="hint" id="menu-hint">웹캠 모드는 카메라 권한이 필요합니다. 상반신이 보이도록 1~2m 떨어져 주세요.</p>
+        <button id="btn-mode-back" class="ghost small">◀ 캐릭터 다시 고르기</button>
+      </div>
+    </section>
+
+    <!-- ---------- 로딩 ---------- -->
+    <section id="scr-loading" class="screen hidden">
+      <div class="panel">
+        <div class="spin">🐧</div>
+        <p id="load-msg">모션 인식 엔진 로딩중...</p>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<script type="module" src="../js/main.js"></script>
+</body>
+</html>

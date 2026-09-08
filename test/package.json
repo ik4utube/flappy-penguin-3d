@@ -2,6 +2,11 @@
   "name": "penguin-e2e",
   "private": true,
   "type": "module",
-  "scripts": { "test": "node e2e.mjs" },
-  "dependencies": { "puppeteer-core": "^23.0.0" }
+  "scripts": {
+    "test": "node e2e.mjs",
+    "shots": "node shots.mjs"
+  },
+  "dependencies": {
+    "puppeteer-core": "^23.0.0"
+  }
 }

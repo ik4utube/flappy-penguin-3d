@@ -42,7 +42,7 @@ function serve() {
   return new Promise(res => {
     const s = http.createServer((req, rep) => {
       let p = decodeURIComponent(req.url.split('?')[0]);
-      if (p === '/') p = '/index.html';
+      if (p.endsWith('/')) p += 'index.html';
       const f = path.join(ROOT, p);
       if (!f.startsWith(ROOT) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) {
         rep.writeHead(404); return rep.end('not found');
@@ -168,7 +168,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 try {
   /* ===== 1. 로드 + 화면 흐름 ===== */
   section('1. 타이틀 → 프롤로그 → 캐릭터 선택');
-  await page.goto(`http://localhost:${PORT}/`, { waitUntil: 'networkidle2', timeout: 30000 });
+  await page.goto(`http://localhost:${PORT}/play/`, { waitUntil: 'networkidle2', timeout: 30000 });
   await page.evaluate(INJECT);
   const vis = id => page.evaluate(i => !document.getElementById(i).classList.contains('hidden'), id);
 
