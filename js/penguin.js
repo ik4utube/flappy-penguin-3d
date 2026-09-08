@@ -60,30 +60,31 @@ export function createPenguin(shape = {}) {
   skull.scale.set(1, 0.95, 1);
   head.add(skull);
 
+  // 진행 방향은 로컬 -Z 다. 얼굴 부품은 전부 머리의 -Z 쪽에 붙어야 한다.
+  // (이걸 +Z 에 붙여 두면 부리가 몸통 쪽을 향해 펭귄이 뒤로 나는 꼴이 된다)
   const face = new THREE.Mesh(new THREE.SphereGeometry(0.5, 7, 5), mBelly);
   face.scale.set(0.82, 0.88, 0.7);
-  face.position.set(0, -0.06, 0.36);
+  face.position.set(0, -0.06, -0.36);
   head.add(face);
 
-  // 부리 : 앞(-Z)이 진행 방향
   const beak = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.55 * S.beakLen, 5), mBeak);
-  beak.rotation.x = -Math.PI / 2;
-  beak.position.set(0, -0.05, 0.62 + 0.1 * S.beakLen);
+  beak.rotation.x = -Math.PI / 2;                 // 원뿔 축 +Y → -Z (앞쪽)
+  beak.position.set(0, -0.05, -(0.62 + 0.1 * S.beakLen));
   head.add(beak);
 
   // 눈
   for (const sx of [-1, 1]) {
     const eye = new THREE.Mesh(new THREE.SphereGeometry(0.115, 6, 5), mEye);
-    eye.position.set(sx * 0.24, 0.14, 0.48);
+    eye.position.set(sx * 0.24, 0.14, -0.48);
     head.add(eye);
     const glint = new THREE.Mesh(new THREE.SphereGeometry(0.045, 5, 4), mBelly);
-    glint.position.set(sx * 0.26, 0.19, 0.56);
+    glint.position.set(sx * 0.26, 0.19, -0.56);
     head.add(glint);
 
     // 눈썹 (사나운 인상)
     if (S.brow) {
       const brow = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.07, 0.1), mBelly);
-      brow.position.set(sx * 0.25, 0.33, 0.46);
+      brow.position.set(sx * 0.25, 0.33, -0.46);
       brow.rotation.z = sx * 0.35;
       head.add(brow);
     }
@@ -95,8 +96,9 @@ export function createPenguin(shape = {}) {
     for (const sx of [-1, 1]) {
       for (let i = 0; i < 3; i++) {
         const q = new THREE.Mesh(new THREE.ConeGeometry(0.075, 0.5 + i * 0.12, 4), mCrest);
-        q.position.set(sx * (0.26 + i * 0.06), 0.5 - i * 0.03, 0.22 - i * 0.18);
-        q.rotation.set(-0.5 - i * 0.18, 0, sx * (0.35 + i * 0.12));
+        // 볏은 눈 위에서 시작해 뒤(+Z)로 쓸려 넘어간다
+        q.position.set(sx * (0.26 + i * 0.06), 0.5 - i * 0.03, -0.12 + i * 0.2);
+        q.rotation.set(0.5 + i * 0.18, 0, sx * (0.35 + i * 0.12));
         head.add(q);
       }
     }

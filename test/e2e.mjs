@@ -214,6 +214,29 @@ try {
         `speed ${charA.perf.speed.toFixed(2)} → ${charB.perf.speed.toFixed(2)}`);
   check('3D 모델이 교체된다', charB.uuid !== charA.uuid);
 
+  // 얼굴 부품을 머리의 +Z 쪽에 붙이면 부리가 몸통을 향해 펭귄이 뒤로 나는 꼴이 된다.
+  // 캐릭터 선택 화면에서 얼굴이 안 보이는 것도 같은 원인이었다.
+  const facing = await page.evaluate(() => {
+    const P = window.PENGUIN, root = P.penguin.root, s = P.state;
+    for (let i = 0; i < 200; i++) P.preview(1 / 60);      // 카메라를 자리잡게
+    root.updateMatrixWorld(true);
+    let beak = null;
+    root.traverse(o => {
+      if (o.isMesh && o.geometry.type === 'ConeGeometry' && o.geometry.parameters.radialSegments === 5) beak = o;
+    });
+    if (!beak) return null;
+    const V = root.position.constructor;
+    const bp = new V(); beak.getWorldPosition(bp);
+    const fwd = new V(0, 0, -1).applyQuaternion(root.quaternion);
+    const toBeak = bp.clone().sub(s.pos).normalize();
+    const toCam = P.camera.position.clone().sub(s.pos).normalize();
+    return { fwd: fwd.dot(toBeak), cam: toCam.dot(toBeak) };
+  });
+  check('부리가 진행 방향을 향한다', facing && facing.fwd > 0.6,
+        facing ? `dot=${facing.fwd.toFixed(2)}` : '부리를 못 찾음');
+  check('캐릭터 선택 카메라가 얼굴 쪽에 있다', facing && facing.cam > 0.6,
+        facing ? `dot=${facing.cam.toFixed(2)}` : '');
+
   await page.click('#btn-sel-ok');
   check('조작 안내 화면으로 넘어간다', await vis('scr-mode'));
   check('선택한 캐릭터 이름이 안내에 나온다',

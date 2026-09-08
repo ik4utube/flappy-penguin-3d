@@ -250,8 +250,9 @@ function updateCamera(dt, roll, pitch) {
 function updatePreview(dt) {
   previewT += dt;
   const t = previewT;
+  const portrait = previewMode === 'portrait';
 
-  // 완만한 원호를 그리며 계속 전진한다
+  // 월드는 어느 화면에서든 계속 흐른다 (배경이 살아 있어야 한다)
   const yaw = t * 0.16;
   const r = 150;
   state.yaw = yaw;
@@ -262,36 +263,46 @@ function updatePreview(dt) {
 
   penguin.root.position.copy(state.pos);
   penguin.root.rotation.y = state.yaw;
-  penguin.anim.update(dt, 0.35 + Math.sin(t * 0.9) * 0.25, Math.sin(t * 0.5) * 0.35, 0, 0);
+
+  if (portrait) {
+    // ---- 캐릭터 선택 : 정면 고정 포즈 ----
+    // 뱅킹(roll)을 주면 몸이 눕고 머리가 돌아가 얼굴이 안 보인다.
+    // 제자리 호버링처럼 날갯짓만 시키고 자세는 정면으로 고정한다.
+    penguin.anim.update(dt, 0.42 + Math.sin(t * 1.6) * 0.12, 0, 0, 0);
+  } else {
+    penguin.anim.update(dt, 0.35 + Math.sin(t * 0.9) * 0.25, Math.sin(t * 0.5) * 0.35, 0, 0);
+  }
   updateShadow(terrainHeight(state.pos.x, state.pos.z));
 
   // 메뉴 배경은 구도가 중요하다. lerp 로 따라가면 펭귄이 계속 이동하는 탓에
   // 지연이 쌓여 프레임 밖으로 밀려난다. 여기서는 펭귄 기준 고정 오프셋으로 놓는다.
-  const portrait = previewMode === 'portrait';
-  // portrait 는 정면 3/4 각도에서 좌우로 천천히 흔들린다 (얼굴이 보여야 한다).
-  // cinematic 은 옆뒤에서 지형과 함께 잡는다.
+  //
+  // 펭귄의 정면은 로컬 -Z. 따라서 yaw + PI 방향에 카메라를 두면 부리가 화면을 향한다.
+  // 살아 있는 느낌만 남도록 좌우 흔들림은 ±5도로 아주 작게 준다.
   const angle  = portrait
-    ? state.yaw + Math.PI + Math.sin(t * 0.4) * 0.75
+    ? state.yaw + Math.PI + Math.sin(t * 0.45) * 0.09
     : state.yaw + 1.15 + t * 0.06;
-  const dist   = portrait ? 16 : 19;
-  const height = portrait ? 2.2 : 4.5;
-  const lookUp = portrait ? 0.4 : 3.2;   // 시선을 위로 올리면 펭귄이 화면 아래쪽에 앉는다
+  const dist   = portrait ? 11 : 19;
+  const height = portrait ? 1.9 : 4.5;
+  const lookUp = portrait ? 1.5 : 3.2;   // portrait 은 머리 높이를 본다   // 시선을 올리면 펭귄이 화면 아래쪽에 앉는다
 
   camera.position.set(
     state.pos.x + Math.sin(angle) * dist,
     state.pos.y + height,
     state.pos.z + Math.cos(angle) * dist
   );
+
   portraitLight.visible = portrait;
   if (portrait) {
-    portraitLight.position.set(camera.position.x, camera.position.y + 8, camera.position.z);
+    // 카메라 쪽에서 살짝 위로 — 얼굴과 배가 밝게 나오도록
+    portraitLight.position.set(camera.position.x, camera.position.y + 7, camera.position.z);
     portraitLight.target.position.copy(state.pos);
     portraitLight.target.updateMatrixWorld();
   }
 
   camLookSmooth.set(state.pos.x, state.pos.y + lookUp, state.pos.z);
   camera.lookAt(camLookSmooth);
-  camera.rotateZ(Math.sin(t * 0.23) * (portrait ? 0.02 : 0.05));   // 아주 미세한 흔들림
+  camera.rotateZ(portrait ? 0 : Math.sin(t * 0.23) * 0.05);
 }
 
 /* ================= 루프 ================= */
