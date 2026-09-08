@@ -9,6 +9,9 @@
 - 3D: **Three.js** (로우폴리 + 플랫셰이딩 + 저해상도 픽셀 업스케일)
 - 빌드 도구 없음. 정적 파일만 있으면 동작한다.
 
+**▶ 지금 해보기 — https://ik4utube.github.io/flappy-penguin-3d/**
+(웹캠 권한을 허용하면 팔로 조종할 수 있다. 웹캠이 없으면 키보드 모드로도 된다.)
+
 기획 문서는 [PLAN.md](PLAN.md) 참고.
 
 ---
@@ -22,6 +25,7 @@ python serve.py
 ```
 
 브라우저에서 http://localhost:8321 접속.
+(배포본만 해보려면 위의 GitHub Pages 주소로 바로 들어가면 된다.)
 (웹캠은 `localhost` 또는 `https` 에서만 허용된다.)
 
 `serve.py` 는 `Cache-Control: no-store` 를 붙인다. 코드를 고쳤는데 브라우저가 낡은 모듈을
@@ -148,6 +152,18 @@ PENGUIN.state                       // 위치 / 속도 / 점수
 PENGUIN.ctrl = { roll: 1, flap: 0.5, tracked: true, landmarks: null, update(){} };
 for (let i = 0; i < 120; i++) PENGUIN.step(1/60);   // 2초치 시뮬레이션
 ```
+
+---
+
+## 배포
+
+빌드 단계가 없어서 저장소 내용이 곧 배포물이다. `main` 에 푸시하면
+GitHub Pages 가 그대로 서빙한다 (`.nojekyll` 로 Jekyll 전처리는 건너뛴다).
+
+웹캠은 **HTTPS 또는 localhost** 에서만 허용되므로, 다른 곳에 올릴 때도
+HTTPS 를 제공하는 정적 호스팅이어야 한다.
+
+`test/` 와 `serve.py` 는 개발용이라 배포에 필요하지 않다 (있어도 무해하다).
 
 ---
 
