@@ -195,7 +195,8 @@ penguin/
 │   └── hud.js          계기판, 웹캠 스켈레톤 오버레이
 └── test/
     ├── e2e.mjs         가짜 카메라 E2E 검증
-    └── shots.mjs       스크린샷 자동 생성
+    ├── shots.mjs       스크린샷 자동 생성
+    └── offline-check.mjs  인터넷 차단 상태에서 뜨는지 확인
 ```
 
 ---
@@ -269,7 +270,11 @@ PENGUIN.preview(1/60)               // 메뉴 배경 연출을 한 프레임 진
 
 ## 알려진 제약
 
-- MediaPipe 모델과 wasm 은 CDN(jsdelivr / storage.googleapis.com)에서 받는다. 오프라인에서는 키보드 모드만 동작한다.
+- **인터넷이 없으면 게임이 실행되지 않는다.** three.js · MediaPipe 모델/wasm · 픽셀 서체를
+  전부 CDN 에서 받는데, three.js 로드가 실패하면 `main.js` 의 import 가 끊겨 스크립트가
+  아예 시작되지 않는다. 타이틀 화면 HTML 만 남고 버튼이 동작하지 않는다.
+  키보드 모드도 마찬가지다. `cd test && npm run offline` 으로 확인할 수 있다.
+  오프라인으로 쓰려면 의존성(약 10MB)을 저장소에 함께 넣고 importmap 을 로컬 경로로 바꿔야 한다.
 - 저사양 기기에서 GPU 델리게이트를 못 쓰면 자동으로 CPU 추론으로 전환되며, 이때 인식이 느려진다.
 - 브라우저 탭이 백그라운드로 가면 `requestAnimationFrame` 이 멈춰 게임도 함께 멈춘다.
 - 웹캠 영상은 브라우저 밖으로 나가지 않는다. 모든 인식은 페이지 안에서 처리된다.

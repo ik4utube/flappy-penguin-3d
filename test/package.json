@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "test": "node e2e.mjs",
-    "shots": "node shots.mjs"
+    "shots": "node shots.mjs",
+    "offline": "node offline-check.mjs"
   },
   "dependencies": {
     "puppeteer-core": "^23.0.0"
